@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from dotenv import load_dotenv
 from datetime import datetime
 from typing import Optional
+
 import os
 
 load_dotenv()

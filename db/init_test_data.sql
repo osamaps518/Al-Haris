@@ -1,6 +1,7 @@
 -- Insert test parent
+-- Use password "testpass123" - properly hashed
 INSERT INTO parent (email, password_hash, name) VALUES 
-('parent@test.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8', 'Test Parent');
+('parent@test.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/vCe.WKeZm.Ui8W6Iq', 'Test Parent');
 
 -- Insert test child (assuming parent_id = 1)
 INSERT INTO child (parent_id, name, device_name) VALUES 
