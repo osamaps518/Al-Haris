@@ -9,6 +9,7 @@ from typing import Dict, Any
 
 import requests, os, random, string
 
+# TODO: Adjust Ordering of functions so they read smoothly
 
 from app.database import (
     get_db, 
@@ -40,7 +41,6 @@ def root():
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
-
     
 
 @app.get("/db-test")
@@ -76,38 +76,7 @@ class SignupRequest(BaseModel):
     email: str
     password: str
     name: str
-    
-    # @field_validator('password')
-    # @classmethod
-    # def validate_password(cls, v):
-    #     return v[:72]
 
-# @app.post("/auth/signup")
-# def signup(request: SignupRequest, db: Session = Depends(get_db)):
-#     # Check if email exists
-#     existing = db.execute(text("SELECT id FROM parent WHERE email = :email"), {"email": request.email}).fetchone()
-#     if existing:
-#         raise HTTPException(status_code=400, detail="Email already registered")
-    
-#     hashed = hash_password(request.password)
-#     db.execute(text("""
-#         INSERT INTO parent (email, password_hash, name)
-#         VALUES (:email, :password, :name)
-#     """), {"email": request.email, "password": hashed, "name": request.name})
-#     db.commit()
-    
-#     return {"message": "Account created successfully"}
-
-# @app.get("/debug/bcrypt-test")
-# def test_bcrypt():
-#     from app.auth import hash_password
-#     try:
-#         test_pass = "ahmad123"
-#         hashed = hash_password(test_pass)
-#         return {"status": "success", "hash_preview": hashed[:20] + "..."}
-#     except Exception as e:
-#         return {"status": "error", "error": str(e), "type": type(e).__name__}
-    
 @app.post("/auth/signup")
 def signup(request: SignupRequest, db: Session = Depends(get_db)):
     try:
@@ -160,25 +129,26 @@ def get_current_parent(credentials: HTTPAuthorizationCredentials =
 def generate_code(length=6):
     return ''.join(random.choices(string.digits, k=length))
 
-
 def send_verification_email(email: str, code: str):
-    # TODO: This URL should probably be added to .env
-    url = "https://api.smtp2go.com/v3/email/send"
-    
+    url = os.getenv("RESEND_API_URL")
+        
     payload = {
-        "api_key": os.getenv("SMTP2GO_API_KEY"),
+        "from": os.getenv("FROM_EMAIL"),
         "to": [email],
-        "sender": os.getenv("FROM_EMAIL"),
         "subject": "Your Verification Code",
-        "html_body": f"<strong>Your verification code is: {code}</strong><br>Valid for 10 minutes."
+        "html": f"<strong>Your verification code is: {code}</strong><br>Valid for 10 minutes."
     }
     
-    response = requests.post(url, json=payload)
+    headers = {
+        "Authorization": f"Bearer {os.getenv('RESEND_API_KEY')}",
+        "Content-Type": "application/json"
+    }
     
-    if response.status_code != 200 or response.json().get("data", {}).get("failed") > 0:
+    response = requests.post(url, json=payload, headers=headers)
+    
+    if response.status_code != 200:
         print(f"Email error: {response.text}")
         raise HTTPException(status_code=500, detail="Failed to send email")
-
 
 
 @app.post("/auth/login")
