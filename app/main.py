@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.auth import verify_password, create_access_token, decode_access_token, hash_password
@@ -77,7 +77,8 @@ class SignupRequest(BaseModel):
     password: str
     name: str
     
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v):
         return v[:72]
 
@@ -107,6 +108,7 @@ def signup(request: SignupRequest, db: Session = Depends(get_db)):
         
 
         # TODO: MOVE QUERY Syntax INTO database.py
+        # hashed = hash_password(request.password[:72]) 
         hashed = hash_password(request.password)
         db.execute(text("""
             INSERT INTO parent (email, password_hash, name)
@@ -148,7 +150,6 @@ def get_current_parent(credentials: HTTPAuthorizationCredentials =
 def generate_code(length=6):
     return ''.join(random.choices(string.digits, k=length))
 
-import requests
 
 def send_verification_email(email: str, code: str):
     # TODO: This URL should probably be added to .env
@@ -199,7 +200,7 @@ def verify_code(request: VerifyCodeRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid or expired code")
     
     code_id, expires_at = result
-    if datetime.now() > expires_at:
+    if datetime.now(timezone.utc) > expires_at:
         raise HTTPException(status_code=401, detail="Code expired")
     
     mark_code_used(db, code_id)
