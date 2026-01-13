@@ -1,0 +1,23 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://alharis:alharis123@db:5432/alharis_db
+    depends_on:
+      - db
+    volumes:
+      - ./app:/code/app
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=alharis
+      - POSTGRES_PASSWORD=alharis123
+      - POSTGRES_DB=alharis_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
