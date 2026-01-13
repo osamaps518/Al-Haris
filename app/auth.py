@@ -20,6 +20,12 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
+
+# def hash_password(password: str) -> str:
+#     # Force clean string, truncate to 72 bytes (not characters)
+#     password_bytes = password.encode('utf-8')[:72]
+#     return pwd_context.hash(password_bytes.decode('utf-8', errors='ignore'))
+
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     if expires_delta:

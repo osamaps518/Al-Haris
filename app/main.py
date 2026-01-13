@@ -77,10 +77,10 @@ class SignupRequest(BaseModel):
     password: str
     name: str
     
-    @field_validator('password')
-    @classmethod
-    def validate_password(cls, v):
-        return v[:72]
+    # @field_validator('password')
+    # @classmethod
+    # def validate_password(cls, v):
+    #     return v[:72]
 
 # @app.post("/auth/signup")
 # def signup(request: SignupRequest, db: Session = Depends(get_db)):
@@ -98,6 +98,16 @@ class SignupRequest(BaseModel):
     
 #     return {"message": "Account created successfully"}
 
+# @app.get("/debug/bcrypt-test")
+# def test_bcrypt():
+#     from app.auth import hash_password
+#     try:
+#         test_pass = "ahmad123"
+#         hashed = hash_password(test_pass)
+#         return {"status": "success", "hash_preview": hashed[:20] + "..."}
+#     except Exception as e:
+#         return {"status": "error", "error": str(e), "type": type(e).__name__}
+    
 @app.post("/auth/signup")
 def signup(request: SignupRequest, db: Session = Depends(get_db)):
     try:
