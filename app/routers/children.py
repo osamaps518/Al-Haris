@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.routers.auth import get_current_parent
+from app.blocklists import is_domain_blocked
 from app.queries import (
     get_children_by_parent,
     create_child,
@@ -54,3 +55,32 @@ def get_child_blocklist(child_id: int, db: Session = Depends(get_db)):
         "enabled_categories": get_parent_enabled_categories(db, parent_id),
         "blocked_urls": get_parent_blocked_urls(db, parent_id)
     }
+
+@router.get("/child/{child_id}/check")
+def check_domain(child_id: int, domain: str, db: Session = Depends(get_db)):
+    child = get_child_with_parent(db, child_id)
+    if not child:
+        raise HTTPException(status_code=404, detail="Child not found")
+    
+    parent_id = child[1]
+    enabled_categories = get_parent_enabled_categories(db, parent_id)
+    blocked_urls = get_parent_blocked_urls(db, parent_id)
+    
+    # Check which category blocked it (if any)
+    from app.blocklists import MANDATORY_CATEGORIES, _blocklists
+    
+    # Check mandatory first
+    for category in MANDATORY_CATEGORIES.keys():
+        if domain in _blocklists.get(category, set()):
+            return {"blocked": True, "reason": category}
+    
+    # Check enabled categories
+    for category in enabled_categories:
+        if domain in _blocklists.get(category, set()):
+            return {"blocked": True, "reason": category}
+    
+    # Check specific URLs
+    if domain in blocked_urls:
+        return {"blocked": True, "reason": "blocked_url"}
+    
+    return {"blocked": False, "reason": None}
