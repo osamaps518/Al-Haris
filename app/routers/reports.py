@@ -52,15 +52,25 @@ def submit_report(request: SubmitReportRequest, db: Session = Depends(get_db)):
         domain = domain.split('://', 1)[1]
     domain = domain.rstrip('/').split('/')[0]
     
+    print(f"DEBUG: Original URL: {request.website_url}")
+    print(f"DEBUG: Normalized domain: {domain}")
+    
     from app.blocklists import _blocklists
     
-    # Check if explicit category
-    is_adult = domain in _blocklists.get("adult", set())
+    adult_list = _blocklists.get("adult", set())
+    print(f"DEBUG: Adult list size: {len(adult_list)}")
     
-    # Only capture screenshot if NOT Explicit content
+    is_adult = domain in adult_list
+    print(f"DEBUG: is_adult: {is_adult}")
+    
+    # Only capture screenshot if NOT adult content
     screenshot_url = None
     if not is_adult:
+        print(f"DEBUG: Attempting screenshot capture...")
         screenshot_url = capture_screenshot(request.website_url)
+        print(f"DEBUG: Screenshot result: {screenshot_url}")
+    else:
+        print(f"DEBUG: Skipping screenshot - adult content")
     
     report_id = create_report(db, request.child_id, request.website_url, screenshot_url)
     return {"message": "Report submitted", "report_id": report_id, "screenshot_captured": not is_adult}
