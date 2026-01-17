@@ -55,6 +55,15 @@ CREATE TABLE verification_code (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Master blacklist from UT1 (loaded once at deployment)
+CREATE TABLE blacklist_domain (
+    id SERIAL PRIMARY KEY,
+    domain VARCHAR(255) NOT NULL UNIQUE,
+    category VARCHAR(100) NOT NULL,  -- 'adult', 'gambling', 'malware', etc.
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
 -- Indexes for common queries
 CREATE INDEX idx_child_parent ON child(parent_id);
 CREATE INDEX idx_report_child ON report(child_id);
@@ -63,3 +72,5 @@ CREATE INDEX idx_blocked_category_parent ON blocked_category(parent_id);
 CREATE INDEX idx_blocked_url_parent ON blocked_url(parent_id);
 CREATE INDEX idx_verification_code_parent ON verification_code(parent_id);
 CREATE INDEX idx_verification_code_expires ON verification_code(expires_at);
+CREATE INDEX idx_blacklist_domain ON blacklist_domain(domain);
+CREATE INDEX idx_blacklist_category ON blacklist_domain(category);

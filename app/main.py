@@ -10,7 +10,6 @@ from typing import Dict, Any
 import requests, os, random, string
 
 # TODO: Adjust Ordering of functions so they read smoothly
-
 from app.database import (
     get_db, 
     get_parent_by_email, 
@@ -72,11 +71,28 @@ def get_reports(db: Session = Depends(get_db)):
         for row in result
     ]}
 
+# TODO: Add Left Endpoints: 1) Bring blocklist, 2)send blocklist to client device
+#     : 3) Receive new blocks from Parent and update database 
+#     : 4) Deactivate Parent account 
+#     : 5) Reset Password
+#     : 6) Make Operations asyn, to not block the main application thread
+#     : 7) Write documentation of the Endpoints
+#     : 8) Deploy the app, either to docker hub as an image or deploy to railway
+#     : 9) Add tests to the main core of the application, CI? What tests do you need? 
+#          No need for unit tests 'probably?' as there is no compelx algorithms or logic 
+#          to be tested
+#     : 10) VERY IMPORTANT: MAKE THE SERVER TAKE THE WEBSITE URL, AND EXTRACT A SCREENSHOT 
+#           OFF OF IT, AND THEN SAVE IT TO DATABASE, AND THEN SEREVR SENDS THAT SCREENSHOT 
+#           TO PARENT CLIENT
+#     : 11) Write README file
+#     : 12) Remove Security Risks, like returning the verification code in the json response
+
 class SignupRequest(BaseModel):
     email: str
     password: str
     name: str
 
+# TODO: Add Verification Code to Signup, for now its only for login
 @app.post("/auth/signup")
 def signup(request: SignupRequest, db: Session = Depends(get_db)):
     try:
@@ -108,6 +124,16 @@ def get_all_parents(db: Session = Depends(get_db)):
     result = db.execute(text("SELECT id, email, name FROM parent")).fetchall()
     return [{"id": r[0], "email": r[1], "name": r[2]} for r in result]
 
+# TODO: ONLY FOR TESTING PURPOSES, REMOVE AFTERWARDS
+@app.get("/debug/verification-codes")
+def get_all_verification_codes(db: Session = Depends(get_db)):
+    result = db.execute(text("""
+        SELECT id, parent_id, code, expires_at, is_used, created_at 
+        FROM verification_code
+        ORDER BY created_at DESC
+    """)).fetchall()
+    return [{"id": r[0], "parent_id": r[1], "code": r[2], "expires_at": r[3].isoformat() if r[3] else None, "is_used": r[4], "created_at": r[5].isoformat() if r[5] else None} for r in result]
+
 # Auth dependency
 # TODO: This function will is subject to be moved to other more fitting file
 def get_current_parent(credentials: HTTPAuthorizationCredentials = 
@@ -134,7 +160,7 @@ def send_verification_email(email: str, code: str):
         
     payload = {
         "from": os.getenv("FROM_EMAIL"),
-        "to": [email],
+        "to": "osamams518@gmail.com",
         "subject": "Your Verification Code",
         "html": f"<strong>Your verification code is: {code}</strong><br>Valid for 10 minutes."
     }
@@ -154,6 +180,7 @@ def send_verification_email(email: str, code: str):
 @app.post("/auth/login")
 def login(request: LoginRequest, db: Session = Depends(get_db)):
     parent = get_parent_by_email(db, request.email)
+    print (parent[1])
     
     if not parent or not verify_password(request.password, parent[1]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -180,6 +207,10 @@ def verify_code(request: VerifyCodeRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid or expired code")
     
     code_id, expires_at = result
+    # Handle naive datetime from database by adding UTC timezone
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    
     if datetime.now(timezone.utc) > expires_at:
         raise HTTPException(status_code=401, detail="Code expired")
     
