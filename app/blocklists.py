@@ -67,8 +67,8 @@ def refresh_all_blocklists() -> None:
     
     print(f"Loaded {len(_blocklists)} blocklists")
 
-def is_domain_blocked(domain: str, enabled_categories: list[str]) -> bool:
-    """Check if domain is blocked by mandatory or enabled categories"""
+def is_domain_blocked(domain: str, enabled_categories: list[str], specific_urls: list[str] = None) -> bool:
+    """Check if domain is blocked by mandatory categories, enabled categories, or specific URLs"""
     # Always check mandatory
     for category in MANDATORY_CATEGORIES.keys():
         if domain in _blocklists.get(category, set()):
@@ -78,5 +78,9 @@ def is_domain_blocked(domain: str, enabled_categories: list[str]) -> bool:
     for category in enabled_categories:
         if domain in _blocklists.get(category, set()):
             return True
+    
+    # Check specific blocked URLs
+    if specific_urls and domain in specific_urls:
+        return True
     
     return False

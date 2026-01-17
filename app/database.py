@@ -62,33 +62,82 @@ def mark_code_used(db: Session, code_id: int) -> None:
 #          Blocklist queries
 # ========================================
 
-def get_child_enabled_categories(db: Session, child_id: int) -> list[str]:
-    """Get list of enabled category names for a child"""
+def get_parent_enabled_categories(db: Session, parent_id: int) -> list[str]:
+    """Get list of enabled category names for a parent"""
     result = db.execute(text("""
-        SELECT category FROM blocked_content 
-        WHERE child_id = :child_id AND category IS NOT NULL
-    """), {"child_id": child_id}).fetchall()
+        SELECT category FROM blocked_category 
+        WHERE parent_id = :parent_id
+    """), {"parent_id": parent_id}).fetchall()
     return [row[0] for row in result]
 
-def set_child_category(db: Session, child_id: int, category: str, enabled: bool) -> None:
-    """Enable or disable a category for a child"""
+def set_parent_category(db: Session, parent_id: int, category: str, enabled: bool) -> None:
+    """Enable or disable a category for a parent"""
     if enabled:
         db.execute(text("""
-            INSERT INTO blocked_content (child_id, category)
-            VALUES (:child_id, :category)
-            ON CONFLICT (child_id, category) WHERE category IS NOT NULL DO NOTHING
-        """), {"child_id": child_id, "category": category})
+            INSERT INTO blocked_category (parent_id, category)
+            VALUES (:parent_id, :category)
+            ON CONFLICT (parent_id, category) DO NOTHING
+        """), {"parent_id": parent_id, "category": category})
     else:
         db.execute(text("""
-            DELETE FROM blocked_content 
-            WHERE child_id = :child_id AND category = :category
-        """), {"child_id": child_id, "category": category})
+            DELETE FROM blocked_category 
+            WHERE parent_id = :parent_id AND category = :category
+        """), {"parent_id": parent_id, "category": category})
     db.commit()
 
-def add_specific_blocked_domain(db: Session, child_id: int, domain: str) -> None:
-    """Add a specific domain to blocklist for a child"""
+def get_parent_blocked_urls(db: Session, parent_id: int) -> list[str]:
+    """Get list of specifically blocked URLs for a parent"""
+    result = db.execute(text("""
+        SELECT url FROM blocked_url WHERE parent_id = :parent_id
+    """), {"parent_id": parent_id}).fetchall()
+    return [row[0] for row in result]
+
+def add_blocked_url(db: Session, parent_id: int, url: str) -> None:
+    """Add a specific URL to blocklist for a parent"""
     db.execute(text("""
-        INSERT INTO blocked_content (child_id, blocked_item)
-        VALUES (:child_id, :domain)
-    """), {"child_id": child_id, "domain": domain})
+        INSERT INTO blocked_url (parent_id, url)
+        VALUES (:parent_id, :url)
+        ON CONFLICT (parent_id, url) DO NOTHING
+    """), {"parent_id": parent_id, "url": url})
     db.commit()
+
+# ========================================
+#          Child queries
+# ========================================
+
+def get_children_by_parent(db: Session, parent_id: int) -> list[tuple]:
+    """Get all children for a parent"""
+    return db.execute(text("""
+        SELECT id, name, device_name, created_at FROM child 
+        WHERE parent_id = :parent_id
+    """), {"parent_id": parent_id}).fetchall()
+
+def create_child(db: Session, parent_id: int, name: str, device_name: str | None) -> int:
+    """Create a child and return its ID"""
+    result = db.execute(text("""
+        INSERT INTO child (parent_id, name, device_name)
+        VALUES (:parent_id, :name, :device_name)
+        RETURNING id
+    """), {"parent_id": parent_id, "name": name, "device_name": device_name})
+    db.commit()
+    return result.fetchone()[0]
+
+def get_child_with_parent(db: Session, child_id: int) -> tuple | None:
+    """Get child with parent_id for authorization checks"""
+    return db.execute(text("""
+        SELECT id, parent_id, name, device_name FROM child WHERE id = :child_id
+    """), {"child_id": child_id}).fetchone()
+
+# ========================================
+#          Report queries
+# ========================================
+
+def create_report(db: Session, child_id: int, website_url: str, screenshot_url: str | None) -> int:
+    """Create a report and return its ID"""
+    result = db.execute(text("""
+        INSERT INTO report (child_id, website_url, screenshot_url)
+        VALUES (:child_id, :website_url, :screenshot_url)
+        RETURNING id
+    """), {"child_id": child_id, "website_url": website_url, "screenshot_url": screenshot_url})
+    db.commit()
+    return result.fetchone()[0]

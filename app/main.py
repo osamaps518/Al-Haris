@@ -9,6 +9,11 @@ from typing import Dict, Any
 
 import requests, os, random, string
 
+from app.blocklists import(
+    OPTIONAL_CATEGORIES,
+    refresh_all_blocklists, 
+    is_domain_blocked)
+
 # TODO: Adjust Ordering of functions so they read smoothly
 from app.database import (
     get_db, 
@@ -16,7 +21,15 @@ from app.database import (
     get_parent_by_id,
     create_verification_code,
     get_verification_code,
-    mark_code_used
+    mark_code_used,
+    get_children_by_parent,
+    create_child,
+    get_child_with_parent,
+    get_parent_enabled_categories,
+    set_parent_category,
+    get_parent_blocked_urls,
+    add_blocked_url,
+    create_report
 )
 
 
@@ -31,6 +44,29 @@ class LoginRequest(BaseModel):
 class VerifyCodeRequest(BaseModel):
     email: str
     code: str
+
+class CreateChildRequest(BaseModel):
+    name: str
+    device_name: str | None = None
+
+class UpdateCategoriesRequest(BaseModel):
+    categories: list[str]
+    
+    @field_validator('categories')
+    @classmethod
+    def validate_categories(cls, v):
+        valid = set(OPTIONAL_CATEGORIES.keys())
+        invalid = set(v) - valid
+        if invalid:
+            raise ValueError(f"Invalid categories: {invalid}")
+        return v
+
+class BlockUrlRequest(BaseModel):
+    url: str
+
+class SubmitReportRequest(BaseModel):
+    child_id: int
+    website_url: str
 
 @app.get("/")
 def root():
