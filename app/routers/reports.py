@@ -1,0 +1,51 @@
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.routers.auth import get_current_parent
+from app.queries import (
+    get_child_with_parent,
+    create_report,
+    get_reports_by_parent
+)
+
+router = APIRouter(tags=["reports"])
+
+# ========================================
+#          DTOs
+# ========================================
+
+class SubmitReportRequest(BaseModel):
+    child_id: int
+    website_url: str
+
+# ========================================
+#          Endpoints
+# ========================================
+
+@router.get("/parent/reports")
+def get_reports(parent: dict = Depends(get_current_parent), db: Session = Depends(get_db)):
+    reports = get_reports_by_parent(db, parent["id"])
+    return {"reports": [
+        {
+            "id": r[0],
+            "website_url": r[1],
+            "screenshot_url": r[2],
+            "timestamp": r[3].isoformat(),
+            "child_name": r[4]
+        }
+        for r in reports
+    ]}
+
+@router.post("/child/report")
+def submit_report(request: SubmitReportRequest, db: Session = Depends(get_db)):
+    child = get_child_with_parent(db, request.child_id)
+    if not child:
+        raise HTTPException(status_code=404, detail="Child not found")
+    
+    # TODO: Server-side screenshot capture
+    screenshot_url = None
+    
+    report_id = create_report(db, request.child_id, request.website_url, screenshot_url)
+    return {"message": "Report submitted", "report_id": report_id}
