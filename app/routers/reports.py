@@ -52,25 +52,34 @@ def submit_report(request: SubmitReportRequest, db: Session = Depends(get_db)):
         domain = domain.split('://', 1)[1]
     domain = domain.rstrip('/').split('/')[0]
     
-    print(f"DEBUG: Original URL: {request.website_url}")
-    print(f"DEBUG: Normalized domain: {domain}")
+    from app.blocklists import _blocklists, OPTIONAL_CATEGORIES
     
-    from app.blocklists import _blocklists
+    # Find which category blocked it (priority order)
+    blocking_reason = None
     
-    adult_list = _blocklists.get("adult", set())
-    print(f"DEBUG: Adult list size: {len(adult_list)}")
+    # Check gambling first (before adult, since adult list contains some gambling sites)
+    if domain in _blocklists.get("gambling", set()):
+        blocking_reason = "gambling"
+    elif domain in _blocklists.get("violence", set()):
+        blocking_reason = "violence"
+    elif domain in _blocklists.get("games", set()):
+        blocking_reason = "games"
+    elif domain in _blocklists.get("chat", set()):
+        blocking_reason = "chat"
+    elif domain in _blocklists.get("adult", set()):
+        blocking_reason = "adult"
     
-    is_adult = domain in adult_list
-    print(f"DEBUG: is_adult: {is_adult}")
+    print(f"DEBUG: {domain} -> blocking_reason: {blocking_reason}")
     
-    # Only capture screenshot if NOT adult content
+    # Only skip screenshot for truly adult content
     screenshot_url = None
-    if not is_adult:
-        print(f"DEBUG: Attempting screenshot capture...")
+    if blocking_reason != "adult":
         screenshot_url = capture_screenshot(request.website_url)
-        print(f"DEBUG: Screenshot result: {screenshot_url}")
-    else:
-        print(f"DEBUG: Skipping screenshot - adult content")
     
     report_id = create_report(db, request.child_id, request.website_url, screenshot_url)
-    return {"message": "Report submitted", "report_id": report_id, "screenshot_captured": not is_adult}
+    return {
+        "message": "Report submitted", 
+        "report_id": report_id, 
+        "screenshot_captured": blocking_reason != "adult",
+        "blocked_reason": blocking_reason
+    }
