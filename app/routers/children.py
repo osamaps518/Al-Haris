@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -22,6 +22,13 @@ router = APIRouter(tags=["children"])
 class CreateChildRequest(BaseModel):
     name: str
     device_name: str | None = None
+    
+    @field_validator('name')
+    @classmethod
+    def name_not_empty(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Name cannot be empty')
+        return v.strip()
 
 # ========================================
 #          Parent Endpoints
@@ -58,6 +65,15 @@ def get_child_blocklist(child_id: int, db: Session = Depends(get_db)):
 
 @router.get("/child/{child_id}/check")
 def check_domain(child_id: int, domain: str, db: Session = Depends(get_db)):
+    # Normalize domain
+    domain = domain.strip().lower()
+    if domain.startswith(('http://', 'https://')):
+        domain = domain.split('://', 1)[1]
+    domain = domain.rstrip('/').split('/')[0]  # Remove path
+    
+    if not domain:
+        raise HTTPException(status_code=400, detail="Domain cannot be empty")
+    
     child = get_child_with_parent(db, child_id)
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
@@ -66,7 +82,6 @@ def check_domain(child_id: int, domain: str, db: Session = Depends(get_db)):
     enabled_categories = get_parent_enabled_categories(db, parent_id)
     blocked_urls = get_parent_blocked_urls(db, parent_id)
     
-    # Check which category blocked it (if any)
     from app.blocklists import MANDATORY_CATEGORIES, _blocklists
     
     # Check mandatory first

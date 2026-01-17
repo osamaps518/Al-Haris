@@ -7,6 +7,8 @@ from app.routers.auth import get_current_parent
 from app.queries import (
     get_child_with_parent,
     create_report,
+    get_parent_blocked_urls,
+    get_parent_enabled_categories,
     get_reports_by_parent
 )
 
@@ -44,7 +46,21 @@ def submit_report(request: SubmitReportRequest, db: Session = Depends(get_db)):
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
     
-    screenshot_url = capture_screenshot(request.website_url)
+    # Normalize domain
+    domain = request.website_url.strip().lower()
+    if domain.startswith(('http://', 'https://')):
+        domain = domain.split('://', 1)[1]
+    domain = domain.rstrip('/').split('/')[0]
+    
+    from app.blocklists import _blocklists
+    
+    # Check if explicit category
+    is_adult = domain in _blocklists.get("adult", set())
+    
+    # Only capture screenshot if NOT Explicit content
+    screenshot_url = None
+    if not is_adult:
+        screenshot_url = capture_screenshot(request.website_url)
     
     report_id = create_report(db, request.child_id, request.website_url, screenshot_url)
-    return {"message": "Report submitted", "report_id": report_id}
+    return {"message": "Report submitted", "report_id": report_id, "screenshot_captured": not is_adult}

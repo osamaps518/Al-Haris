@@ -32,6 +32,18 @@ class UpdateCategoriesRequest(BaseModel):
 
 class BlockUrlRequest(BaseModel):
     url: str
+    
+    @field_validator('url')
+    @classmethod
+    def validate_url(cls, v):
+        v = v.strip().lower()
+        if not v:
+            raise ValueError('URL cannot be empty')
+        # Remove protocol if present
+        if v.startswith(('http://', 'https://')):
+            v = v.split('://', 1)[1]
+        # Remove trailing slash
+        return v.rstrip('/')
 
 # ========================================
 #          Endpoints
