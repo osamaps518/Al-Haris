@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from app.blocklists import refresh_all_blocklists
 from app.routers import auth, blocking, children, reports
+from app.blocklists import is_domain_blocked
+
 
 app = FastAPI(title="Al-Haris API", version="0.1.0")
 
@@ -15,6 +17,8 @@ def startup_event():
     print("Loading blocklists...")
     refresh_all_blocklists()
     print("Blocklists loaded!")
+    assert is_domain_blocked("pornhub.com", ["adult"]), "Blocklist check failed!"
+    print("Startup checks passed!")
 
 @app.get("/")
 def root():

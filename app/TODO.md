@@ -1,4 +1,4 @@
-1. Screenshot capture - Server takes URL, captures screenshot, stores it, returns to parent
+1. Screenshot capture - Server takes URL, captures screenshot, stores it, returns to parent [[DONE]]
 2. Write README file
 3. Deploy (Docker Hub image or Railway)
 4. Make operations async (optional optimization)

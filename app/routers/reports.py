@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-
+from app.screenshots import capture_screenshot
 from app.database import get_db
 from app.routers.auth import get_current_parent
 from app.queries import (
@@ -44,8 +44,7 @@ def submit_report(request: SubmitReportRequest, db: Session = Depends(get_db)):
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
     
-    # TODO: Server-side screenshot capture
-    screenshot_url = None
+    screenshot_url = capture_screenshot(request.website_url)
     
     report_id = create_report(db, request.child_id, request.website_url, screenshot_url)
     return {"message": "Report submitted", "report_id": report_id}
