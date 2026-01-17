@@ -1,155 +1,252 @@
-# Al-Haris Backend API
+# Al-Haris Backend
 
-Parental control application backend built with FastAPI, PostgreSQL, and Docker.
-
-## Features
-
-- Parent authentication with email verification (JWT-based)
-- Child device management(receiving/saving reports and reviewing access urls)
-- Website blocking by category (adult, gambling, violence, games, chat)
-- Custom URL blocking
-- Activity reports with server-side screenshots
-- UT1 blacklist integration for content filtering
-
-## Live API
-
-**Base URL**: `https://your-app.up.railway.app`
-
-**API Documentation**: `https://your-app.up.railway.app/docs`
-
-## Quick Start
-
-### Option 1: Use Deployed API (Recommended)
-
-No setup needed. Use the endpoints directly:
-
-```bash
-# Health check
-curl https://your-app.up.railway.app/health
-
-# Signup
-curl -X POST https://your-app.up.railway.app/auth/signup \
-  -H "Content-Type: application/json" \
-  -d '{"email": "parent@example.com", "password": "secret", "name": "Parent"}'
-```
-
-### Option 2: Run Locally with Docker
-
-1. **Pull the image**:
-
-   ```bash
-   docker pull yourusername/alharis-api:latest
-   ```
-
-2. **Create `.env` file**:
-
-   ```env
-   DATABASE_URL=postgresql://user:pass@host:5432/dbname
-   SECRET_KEY=your-secret-key
-   ALGORITHM=HS256
-   ACCESS_TOKEN_EXPIRE_MINUTES=30
-   RESEND_API_KEY=your-resend-key
-   RESEND_API_URL=https://api.resend.com/emails
-   FROM_EMAIL=onboarding@resend.dev
-   SCREENSHOT_API_KEY=your-screenshotone-key
-   ```
-
-3. **Run with Docker Compose**:
-
-   ```bash
-   docker-compose up -d
-   ```
-
-   Or standalone (provide your own PostgreSQL):
-
-   ```bash
-   docker run -p 8000:8000 --env-file .env yourusername/alharis-api:latest
-   ```
-
-4. **Access**: `http://localhost:8000/docs`
-
-### Option 3: Build from Source
-
-```bash
-git clone https://github.com/yourusername/alharis-backend.git
-cd alharis-backend
-cp .env.example .env  # Edit with your values
-docker-compose up --build
-```
-
-## API Endpoints
-
-### Authentication
-
-| Method | Endpoint       | Description                |
-| ------ | -------------- | -------------------------- |
-| POST   | `/auth/signup` | Create parent account      |
-| POST   | `/auth/login`  | Request verification code  |
-| POST   | `/auth/verify` | Verify code, get JWT token |
-
-### Parent Management
-
-| Method | Endpoint             | Description               |
-| ------ | -------------------- | ------------------------- |
-| GET    | `/parent/children`   | List all children         |
-| POST   | `/parent/child`      | Add a child               |
-| GET    | `/parent/settings`   | Get blocking settings     |
-| PUT    | `/parent/categories` | Update blocked categories |
-| POST   | `/parent/block-url`  | Block specific URL        |
-| GET    | `/parent/reports`    | View activity reports     |
-
-### Child Device
-
-| Method | Endpoint                | Description              |
-| ------ | ----------------------- | ------------------------ |
-| GET    | `/child/{id}/blocklist` | Get blocklist for device |
-| POST   | `/child/report`         | Submit activity report   |
-
-## Environment Variables
-
-| Variable                      | Description                  | Required |
-| ----------------------------- | ---------------------------- | -------- |
-| `DATABASE_URL`                | PostgreSQL connection string | Yes      |
-| `SECRET_KEY`                  | JWT signing key              | Yes      |
-| `ALGORITHM`                   | JWT algorithm (HS256)        | Yes      |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token expiry                 | Yes      |
-| `RESEND_API_KEY`              | Resend.com API key           | Yes      |
-| `RESEND_API_URL`              | Resend API endpoint          | Yes      |
-| `FROM_EMAIL`                  | Sender email address         | Yes      |
-| `SCREENSHOT_API_KEY`          | ScreenshotOne API key        | Yes      |
-
-## Blocked Categories
-
-- `adult` - Adult content (auto-includes sexual education)
-- `gambling` - Gambling sites
-- `violence` - Violent/aggressive content
-- `games` - Gaming sites
-- `chat` - Chat platforms
-
-**Always enabled**: `malware` (includes phishing)
+Parental control API for monitoring and filtering children's internet access. Built with FastAPI, PostgreSQL, and UT1 blocklists.
 
 ## Tech Stack
 
-- **Framework**: FastAPI
-- **Database**: PostgreSQL
-- **Auth**: JWT with email verification
-- **Email**: Resend SMTP
-- **Screenshots**: ScreenshotOne API
-- **Blocklists**: UT1 Blacklists
+- **Framework:** FastAPI
+- **Database:** PostgreSQL
+- **Authentication:** JWT with email verification (Resend)
+- **Content Filtering:** UT1 blacklists (adult, gambling, violence, games, chat)
+- **Screenshots:** ScreenshotOne API (skipped for explicit content)
+- **Deployment:** Railway
 
-## Project Structure
+## Live API
+
+- **Base URL:** `https://al-haris-production.up.railway.app`
+- **Interactive Docs:** `https://al-haris-production.up.railway.app/docs`
+
+## API Reference
+
+### Authentication
+
+| Endpoint       | Method | Description               |
+| -------------- | ------ | ------------------------- |
+| `/auth/signup` | POST   | Create parent account     |
+| `/auth/login`  | POST   | Request verification code |
+| `/auth/verify` | POST   | Verify code, receive JWT  |
+
+**POST /auth/signup**
+
+```json
+// Request
+{ "email": "parent@example.com", "password": "secret123", "name": "Ahmed" }
+
+// Response
+{ "message": "Account created. Verification code sent." }
+```
+
+**POST /auth/login**
+
+```json
+// Request
+{ "email": "parent@example.com", "password": "secret123" }
+
+// Response
+{ "message": "Verification code sent" }
+```
+
+**POST /auth/verify**
+
+```json
+// Request
+{ "email": "parent@example.com", "code": "123456" }
+
+// Response
+{ "access_token": "eyJhbG...", "token_type": "bearer" }
+```
+
+### Parent Endpoints (Requires Bearer Token)
+
+| Endpoint             | Method | Description               |
+| -------------------- | ------ | ------------------------- |
+| `/parent/children`   | GET    | List all children         |
+| `/parent/child`      | POST   | Add a child               |
+| `/parent/settings`   | GET    | Get blocking settings     |
+| `/parent/categories` | PUT    | Update blocked categories |
+| `/parent/block-url`  | POST   | Block specific URL        |
+| `/parent/reports`    | GET    | Get all reports           |
+
+**GET /parent/children**
+
+```json
+// Response
+{
+  "children": [
+    {
+      "id": 1,
+      "name": "Yusuf",
+      "device_name": "Samsung A52",
+      "created_at": "2025-01-15T10:30:00"
+    }
+  ]
+}
+```
+
+**POST /parent/child**
+
+```json
+// Request
+{ "name": "Yusuf", "device_name": "Samsung A52" }
+
+// Response
+{ "message": "Child added", "child_id": 1 }
+```
+
+**GET /parent/settings**
+
+```json
+// Response
+{
+  "enabled_categories": ["adult", "gambling"],
+  "blocked_urls": ["reddit.com"],
+  "available_categories": ["adult", "gambling", "violence", "games", "chat"]
+}
+```
+
+**PUT /parent/categories**
+
+```json
+// Request
+{ "categories": ["adult", "gambling", "violence"] }
+
+// Response
+{ "message": "Categories updated", "enabled_categories": ["adult", "gambling", "violence"] }
+```
+
+**POST /parent/block-url**
+
+```json
+// Request
+{ "url": "reddit.com" }
+
+// Response
+{ "message": "URL blocked" }
+```
+
+**GET /parent/reports**
+
+```json
+// Response
+{
+  "reports": [
+    {
+      "id": 1,
+      "website_url": "https://bet365.com",
+      "screenshot_url": "https://api.screenshotone.com/take?...",
+      "timestamp": "2025-01-15T14:22:00",
+      "child_name": "Yusuf"
+    }
+  ]
+}
+```
+
+### Child Device Endpoints (No Auth Required)
+
+| Endpoint                      | Method | Description                    |
+| ----------------------------- | ------ | ------------------------------ |
+| `/child/{child_id}/blocklist` | GET    | Get blocking config for device |
+| `/child/{child_id}/check`     | GET    | Check if domain is blocked     |
+| `/child/report`               | POST   | Submit blocked access report   |
+
+**GET /child/{child_id}/blocklist**
+
+```json
+// Response
+{
+  "enabled_categories": ["adult", "gambling"],
+  "blocked_urls": ["reddit.com"]
+}
+```
+
+**GET /child/{child_id}/check?domain=pornhub.com**
+
+```json
+// Response
+{ "blocked": true, "reason": "adult" }
+
+// Or if allowed
+{ "blocked": false, "reason": null }
+```
+
+**POST /child/report**
+
+```json
+// Request
+{ "child_id": 1, "website_url": "https://bet365.com" }
+
+// Response
+{
+  "message": "Report submitted",
+  "report_id": 1,
+  "screenshot_captured": true,
+  "blocked_reason": "gambling"
+}
+```
+
+Note: Screenshots are **not captured** for explicit content. For other categories (gambling, violence, etc.), screenshots are captured. Frontend can apply blur if needed.
+
+## Content Categories
+
+| Category   | Description                   | Screenshot |
+| ---------- | ----------------------------- | ---------- |
+| `malware`  | Always blocked (security)     | Yes        |
+| `adult`    | Pornography, explicit content | **No**     |
+| `gambling` | Betting, casino sites         | Yes        |
+| `violence` | Aggressive/dangerous content  | Yes        |
+| `games`    | Gaming sites                  | Yes        |
+| `chat`     | Chat/messaging platforms      | Yes        |
+
+## Local Development
+
+**Prerequisites:** Docker, Python 3.11+
+
+```bash
+# Clone
+git clone https://github.com/your-username/al-haris-backend.git
+cd al-haris-backend
+
+# Environment variables
+cp .env.example .env
+# Fill in values (see below)
+
+# Start PostgreSQL
+docker-compose up -d db
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Initialize database
+psql $DATABASE_URL -f db/schema.sql
+
+# Run server
+uvicorn app.main:app --reload
+```
+
+## Environment Variables
 
 ```
-app/
-├── main.py          # FastAPI app, startup
-├── auth.py          # JWT, password hashing
-├── database.py      # SQLAlchemy setup
-├── queries.py       # Database queries
-├── blocklists.py    # UT1 blocklist loading
-├── screenshots.py   # Screenshot capture
-└── routers/
-    ├── auth.py      # Auth endpoints
-    ├── blocking.py  # Blocking endpoints
-    ├── children.py  # Child management
-    └── reports.py   # Report endpoints
+DATABASE_URL=postgresql://user:pass@localhost:5432/alharis
+SECRET_KEY=your-jwt-secret
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+RESEND_API_KEY=re_xxxxx
+RESEND_API_URL=https://api.resend.com/emails
+FROM_EMAIL=onboarding@resend.dev
+SCREENSHOT_API_KEY=xxxxx
+```
+
+## Architecture
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│ Parent App  │────▶│   Backend   │◀────│ Child App   │
+│   (React)   │     │  (FastAPI)  │     │  (Android)  │
+└─────────────┘     └──────┬──────┘     └─────────────┘
+                           │
+                    ┌──────▼──────┐
+                    │ PostgreSQL  │
+                    └─────────────┘
+
+
 ```
