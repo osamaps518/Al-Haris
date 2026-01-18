@@ -56,13 +56,6 @@ Parental control API for monitoring and filtering children's internet access. Bu
 { "access_token": "eyJhbG...", "token_type": "bearer" }
 ```
 
-**GET /auth/me** _(Requires Auth)_
-
-```json
-// Response
-{ "name": "Ahmed" }
-```
-
 ### Parent Endpoints (Requires Bearer Token)
 
 | Endpoint             | Method | Description               |
@@ -166,7 +159,7 @@ Parental control API for monitoring and filtering children's internet access. Bu
 }
 ```
 
-**GET /child/{child_id}/check?domain=pornhub.com**
+**GET /child/{child_id}/check?domain=example.com**
 
 ```json
 // Response
