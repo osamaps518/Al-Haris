@@ -159,7 +159,7 @@ Parental control API for monitoring and filtering children's internet access. Bu
 }
 ```
 
-**GET /child/{child_id}/check?domain=pornhub.com**
+**GET /child/{child_id}/check?domain=example.com**
 
 ```json
 // Response
