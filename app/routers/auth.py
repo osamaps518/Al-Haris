@@ -150,3 +150,7 @@ def verify_code(request: VerifyCodeRequest, db: Session = Depends(get_db)):
     
     access_token = create_access_token({"parent_id": parent_id, "email": request.email})
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/me")
+def get_current_parent_details(parent: dict = Depends(get_current_parent)):
+    return {"name": parent["name"]}
