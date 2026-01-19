@@ -45,6 +45,23 @@ class BlockUrlRequest(BaseModel):
         # Remove trailing slash
         return v.rstrip('/')
 
+class UnblockUrlRequest(BaseModel):
+    url: str
+    
+    @field_validator('url')
+    @classmethod
+    def validate_url(cls, v):
+        v = v.strip().lower()
+        if not v:
+            raise ValueError('URL cannot be empty')
+        if v.startswith(('http://', 'https://')):
+            v = v.split('://', 1)[1]
+        return v.rstrip('/')
+
+class AppStatusRequest(BaseModel):
+    enabled: bool
+
+
 # ========================================
 #          Endpoints
 # ========================================
@@ -74,3 +91,23 @@ def update_categories(request: UpdateCategoriesRequest, parent: dict = Depends(g
 def block_url(request: BlockUrlRequest, parent: dict = Depends(get_current_parent), db: Session = Depends(get_db)):
     add_blocked_url(db, parent["id"], request.url)
     return {"message": "URL blocked"}
+
+
+@router.delete("/parent/unblock-url")
+def unblock_url(request: UnblockUrlRequest, parent: dict = Depends(get_current_parent), db: Session = Depends(get_db)):
+    from app.queries import remove_blocked_url
+    removed = remove_blocked_url(db, parent["id"], request.url)
+    if not removed:
+        raise HTTPException(status_code=404, detail="URL not found in blocklist")
+    return {"message": "URL unblocked"}
+
+@router.put("/parent/app-status")
+def set_app_status(request: AppStatusRequest, parent: dict = Depends(get_current_parent), db: Session = Depends(get_db)):
+    from app.queries import set_parent_app_status
+    set_parent_app_status(db, parent["id"], request.enabled)
+    return {"message": "App status updated", "filtering_enabled": request.enabled}
+
+@router.get("/parent/app-status")
+def get_app_status(parent: dict = Depends(get_current_parent), db: Session = Depends(get_db)):
+    from app.queries import get_parent_app_status
+    return {"filtering_enabled": get_parent_app_status(db, parent["id"])}

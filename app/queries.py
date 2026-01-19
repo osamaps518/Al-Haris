@@ -77,6 +77,11 @@ def get_child_with_parent(db: Session, child_id: int) -> tuple | None:
         SELECT id, parent_id, name, device_name FROM child WHERE id = :child_id
     """), {"child_id": child_id}).fetchone()
 
+def delete_child_by_id(db: Session, child_id: int) -> None:
+    db.execute(text("DELETE FROM child WHERE id = :id"), {"id": child_id})
+    db.commit()
+
+
 # ========================================
 #          Blocklist queries
 # ========================================
@@ -116,6 +121,15 @@ def add_blocked_url(db: Session, parent_id: int, url: str) -> None:
     """), {"parent_id": parent_id, "url": url})
     db.commit()
 
+def remove_blocked_url(db: Session, parent_id: int, url: str) -> bool:
+    result = db.execute(text("""
+        DELETE FROM blocked_url 
+        WHERE parent_id = :parent_id AND url = :url
+        RETURNING id
+    """), {"parent_id": parent_id, "url": url})
+    db.commit()
+    return result.fetchone() is not None
+
 # ========================================
 #          Report queries
 # ========================================
@@ -137,3 +151,23 @@ def get_reports_by_parent(db: Session, parent_id: int) -> list[tuple]:
         WHERE c.parent_id = :parent_id
         ORDER BY r.timestamp DESC
     """), {"parent_id": parent_id}).fetchall()
+
+# ========================================
+#          App Status queries
+# ========================================
+
+def get_parent_app_status(db: Session, parent_id: int) -> bool:
+    result = db.execute(
+        text("SELECT filtering_enabled FROM parent WHERE id = :id"),
+        {"id": parent_id}
+    ).fetchone()
+    return result[0] if result else True
+
+def set_parent_app_status(db: Session, parent_id: int, enabled: bool) -> None:
+    db.execute(
+        text("UPDATE parent SET filtering_enabled = :enabled WHERE id = :id"),
+        {"enabled": enabled, "id": parent_id}
+    )
+    db.commit()
+
+

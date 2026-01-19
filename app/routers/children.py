@@ -58,9 +58,15 @@ def get_child_blocklist(child_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Child not found")
     
     parent_id = child[1]
+    
+    from app.queries import get_parent_app_status
+    if not get_parent_app_status(db, parent_id):
+        return {"enabled_categories": [], "blocked_urls": [], "filtering_enabled": False}
+    
     return {
         "enabled_categories": get_parent_enabled_categories(db, parent_id),
-        "blocked_urls": get_parent_blocked_urls(db, parent_id)
+        "blocked_urls": get_parent_blocked_urls(db, parent_id),
+        "filtering_enabled": True
     }
 
 @router.get("/child/{child_id}/check")
@@ -99,3 +105,14 @@ def check_domain(child_id: int, domain: str, db: Session = Depends(get_db)):
         return {"blocked": True, "reason": "blocked_url"}
     
     return {"blocked": False, "reason": None}
+
+
+@router.delete("/parent/child/{child_id}")
+def delete_child(child_id: int, parent: dict = Depends(get_current_parent), db: Session = Depends(get_db)):
+    child = get_child_with_parent(db, child_id)
+    if not child or child[1] != parent["id"]:
+        raise HTTPException(status_code=404, detail="Child not found")
+    
+    from app.queries import delete_child_by_id
+    delete_child_by_id(db, child_id)
+    return {"message": "Child deleted"}
