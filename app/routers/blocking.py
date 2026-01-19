@@ -93,7 +93,7 @@ def block_url(request: BlockUrlRequest, parent: dict = Depends(get_current_paren
     return {"message": "URL blocked"}
 
 
-@router.delete("/parent/unblock-url")
+@router.delete("/unblock-url")
 def unblock_url(request: UnblockUrlRequest, parent: dict = Depends(get_current_parent), db: Session = Depends(get_db)):
     from app.queries import remove_blocked_url
     removed = remove_blocked_url(db, parent["id"], request.url)
@@ -101,13 +101,13 @@ def unblock_url(request: UnblockUrlRequest, parent: dict = Depends(get_current_p
         raise HTTPException(status_code=404, detail="URL not found in blocklist")
     return {"message": "URL unblocked"}
 
-@router.put("/parent/app-status")
+@router.put("/app-status")
 def set_app_status(request: AppStatusRequest, parent: dict = Depends(get_current_parent), db: Session = Depends(get_db)):
     from app.queries import set_parent_app_status
     set_parent_app_status(db, parent["id"], request.enabled)
     return {"message": "App status updated", "filtering_enabled": request.enabled}
 
-@router.get("/parent/app-status")
+@router.get("/app-status")
 def get_app_status(parent: dict = Depends(get_current_parent), db: Session = Depends(get_db)):
     from app.queries import get_parent_app_status
     return {"filtering_enabled": get_parent_app_status(db, parent["id"])}
