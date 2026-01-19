@@ -65,14 +65,20 @@ Parental control API for monitoring and filtering children's internet access. Bu
 
 ### Parent Endpoints (Requires Bearer Token)
 
-| Endpoint             | Method | Description               |
-| -------------------- | ------ | ------------------------- |
-| `/parent/children`   | GET    | List all children         |
-| `/parent/child`      | POST   | Add a child               |
-| `/parent/settings`   | GET    | Get blocking settings     |
-| `/parent/categories` | PUT    | Update blocked categories |
-| `/parent/block-url`  | POST   | Block specific URL        |
-| `/parent/reports`    | GET    | Get all reports           |
+| Endpoint                   | Method | Description               |
+| -------------------------- | ------ | ------------------------- |
+| `/parent/children`         | GET    | List all children         |
+| `/parent/child`            | POST   | Add a child               |
+| `/parent/settings`         | GET    | Get blocking settings     |
+| `/parent/categories`       | PUT    | Update blocked categories |
+| `/parent/block-url`        | POST   | Block specific URL        |
+| `/parent/reports`          | GET    | Get all reports           |
+| `/parent/child/{child_id}` | DELETE | Delete a child            |
+| `/parent/unblock-url`      | DELETE | Unblock a URL             |
+| `/parent/app-status`       | GET    | Get filtering status      |
+| `/parent/app-status`       | PUT    | Enable/disable filtering  |
+
+## Endpoint Details
 
 **GET /parent/children**
 
@@ -148,6 +154,46 @@ Parental control API for monitoring and filtering children's internet access. Bu
 }
 ```
 
+**DELETE /parent/child/{child_id}**
+
+```json
+// Response
+{ "message": "Child deleted" }
+
+// Error (404)
+{ "detail": "Child not found" }
+```
+
+**DELETE /parent/unblock-url**
+
+```json
+// Request
+{ "url": "reddit.com" }
+
+// Response
+{ "message": "URL unblocked" }
+
+// Error (404)
+{ "detail": "URL not found in blocklist" }
+```
+
+**GET /parent/app-status**
+
+```json
+// Response
+{ "filtering_enabled": true }
+```
+
+**PUT /parent/app-status**
+
+```json
+// Request
+{ "enabled": false }
+
+// Response
+{ "message": "App status updated", "filtering_enabled": false }
+```
+
 ### Child Device Endpoints (No Auth Required)
 
 | Endpoint                      | Method | Description                    |
@@ -192,6 +238,24 @@ Parental control API for monitoring and filtering children's internet access. Bu
 ```
 
 Note: Screenshots are **not captured** for explicit content. For other categories (gambling, violence, etc.), screenshots are captured. Frontend can apply blur if needed.
+
+**GET /child/{child_id}/blocklist** (now includes filtering status)
+
+```json
+// Response (filtering ON)
+{
+  "enabled_categories": ["adult", "gambling"],
+  "blocked_urls": ["reddit.com"],
+  "filtering_enabled": true
+}
+
+// Response (filtering OFF - VPN should disconnect)
+{
+  "enabled_categories": [],
+  "blocked_urls": [],
+  "filtering_enabled": false
+}
+```
 
 ## Content Categories
 
