@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.blocklists import refresh_all_blocklists
-from app.routers import auth, blocking, children, reports
+from app.routers import auth, blocking, children, reports, qr_auth
 from app.blocklists import is_domain_blocked
 
 
@@ -11,6 +11,8 @@ app.include_router(auth.router)
 app.include_router(blocking.router)
 app.include_router(children.router)
 app.include_router(reports.router)
+app.include_router(qr_auth.router)
+
 
 @app.on_event("startup")
 def startup_event():

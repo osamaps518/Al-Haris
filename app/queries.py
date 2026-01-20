@@ -3,9 +3,7 @@ from sqlalchemy import text
 from datetime import datetime
 from typing import Optional
 
-# ========================================
 #          Authentication queries
-# ========================================
 
 def get_parent_by_email(db: Session, email: str) -> Optional[tuple]:
     return db.execute(
@@ -53,9 +51,7 @@ def mark_code_used(db: Session, code_id: int) -> None:
     db.execute(text("UPDATE verification_code SET is_used = TRUE WHERE id = :id"), {"id": code_id})
     db.commit()
 
-# ========================================
 #          Child queries
-# ========================================
 
 def get_children_by_parent(db: Session, parent_id: int) -> list[tuple]:
     return db.execute(text("""
@@ -82,9 +78,7 @@ def delete_child_by_id(db: Session, child_id: int) -> None:
     db.commit()
 
 
-# ========================================
 #          Blocklist queries
-# ========================================
 
 def get_parent_enabled_categories(db: Session, parent_id: int) -> list[str]:
     result = db.execute(text("""
@@ -130,9 +124,7 @@ def remove_blocked_url(db: Session, parent_id: int, url: str) -> bool:
     db.commit()
     return result.fetchone() is not None
 
-# ========================================
 #          Report queries
-# ========================================
 
 def create_report(db: Session, child_id: int, website_url: str, screenshot_url: str | None) -> int:
     result = db.execute(text("""
@@ -152,9 +144,7 @@ def get_reports_by_parent(db: Session, parent_id: int) -> list[tuple]:
         ORDER BY r.timestamp DESC
     """), {"parent_id": parent_id}).fetchall()
 
-# ========================================
 #          App Status queries
-# ========================================
 
 def get_parent_app_status(db: Session, parent_id: int) -> bool:
     result = db.execute(
@@ -170,4 +160,22 @@ def set_parent_app_status(db: Session, parent_id: int, enabled: bool) -> None:
     )
     db.commit()
 
+#          QR Login queries
 
+def create_qr_token(db: Session, token: str, parent_id: int, child_id: int, expires_at: datetime) -> None:
+    db.execute(text("""
+        INSERT INTO qr_login_token (token, parent_id, child_id, expires_at)
+        VALUES (:token, :parent_id, :child_id, :expires_at)
+    """), {"token": token, "parent_id": parent_id, "child_id": child_id, "expires_at": expires_at})
+    db.commit()
+
+def get_qr_token(db: Session, token: str) -> Optional[tuple]:
+    return db.execute(text("""
+        SELECT id, parent_id, child_id, expires_at, is_used 
+        FROM qr_login_token 
+        WHERE token = :token
+    """), {"token": token}).fetchone()
+
+def mark_qr_token_used(db: Session, token_id: int) -> None:
+    db.execute(text("UPDATE qr_login_token SET is_used = TRUE WHERE id = :id"), {"id": token_id})
+    db.commit()

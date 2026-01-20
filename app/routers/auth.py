@@ -21,9 +21,7 @@ from app.queries import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer()
 
-# ========================================
 #          DTOs
-# ========================================
 
 class SignupRequest(BaseModel):
     email: str
@@ -52,9 +50,7 @@ class VerifyCodeRequest(BaseModel):
     email: str
     code: str
 
-# ========================================
 #          Helpers
-# ========================================
 
 def generate_code(length=6) -> str:
     return ''.join(random.choices(string.digits, k=length))
@@ -92,9 +88,7 @@ def get_current_parent(
     
     return {"id": result[0], "email": result[1], "name": result[2]}
 
-# ========================================
 #          Endpoints
-# ========================================
 
 @router.post("/signup")
 def signup(request: SignupRequest, db: Session = Depends(get_db)):

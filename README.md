@@ -257,6 +257,48 @@ Note: Screenshots are **not captured** for explicit content. For other categorie
 }
 ```
 
+## QR Code Authentication
+
+### Endpoints
+
+| Endpoint                  | Method | Description                       |
+| ------------------------- | ------ | --------------------------------- |
+| `/auth/generate-qr-token` | POST   | Generate QR token for child login |
+| `/auth/login-qr`          | POST   | Child login with scanned QR       |
+
+**POST /auth/generate-qr-token** _(Requires Auth)_
+
+```json
+// Request
+{ "child_id": 1 }
+
+// Response
+{
+  "token": "xJ9kL2mN4pQ6rS8tU0vW1xY3zA5bC7dE9fG1hI3jK5lM7nO9pQ1rS3tU5vW7xY9z",
+  "child_name": "Yusuf",
+  "expires_at": "2025-01-20T14:35:00.000Z"
+}
+```
+
+**POST /auth/login-qr** _(No Auth Required)_
+
+```json
+// Request
+{ "token": "xJ9kL2mN4pQ6rS8tU0vW1xY3zA5bC7dE9fG1hI3jK5lM7nO9pQ1rS3tU5vW7xY9z" }
+
+// Response
+{
+  "access_token": "eyJhbG...",
+  "token_type": "bearer",
+  "child_id": 1
+}
+
+// Error (401)
+{ "detail": "Invalid or expired QR token" }
+{ "detail": "QR token already used" }
+{ "detail": "QR token expired" }
+```
+
 ## Content Categories
 
 | Category   | Description                   | Screenshot |

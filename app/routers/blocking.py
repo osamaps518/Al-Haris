@@ -14,9 +14,7 @@ from app.queries import (
 
 router = APIRouter(prefix="/parent", tags=["blocking"])
 
-# ========================================
 #          DTOs
-# ========================================
 
 class UpdateCategoriesRequest(BaseModel):
     categories: list[str]
@@ -62,9 +60,7 @@ class AppStatusRequest(BaseModel):
     enabled: bool
 
 
-# ========================================
 #          Endpoints
-# ========================================
 
 @router.get("/settings")
 def get_blocking_settings(parent: dict = Depends(get_current_parent), db: Session = Depends(get_db)):

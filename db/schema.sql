@@ -6,6 +6,7 @@ CREATE TABLE parent (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     name VARCHAR(100) NOT NULL,
+    filtering_enabled BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -63,6 +64,16 @@ CREATE TABLE blacklist_domain (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE qr_login_token (
+    id SERIAL PRIMARY KEY,
+    token VARCHAR(255) UNIQUE NOT NULL,
+    parent_id INTEGER NOT NULL REFERENCES parent(id) ON DELETE CASCADE,
+    child_id INTEGER NOT NULL REFERENCES child(id) ON DELETE CASCADE,
+    expires_at TIMESTAMP NOT NULL,
+    is_used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 
 -- Indexes for common queries
 CREATE INDEX idx_child_parent ON child(parent_id);
@@ -74,3 +85,5 @@ CREATE INDEX idx_verification_code_parent ON verification_code(parent_id);
 CREATE INDEX idx_verification_code_expires ON verification_code(expires_at);
 CREATE INDEX idx_blacklist_domain ON blacklist_domain(domain);
 CREATE INDEX idx_blacklist_category ON blacklist_domain(category);
+CREATE INDEX idx_qr_token_lookup ON qr_login_token(token, is_used);
+CREATE INDEX idx_qr_token_expires ON qr_login_token(expires_at);

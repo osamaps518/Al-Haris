@@ -14,17 +14,13 @@ from app.queries import (
 
 router = APIRouter(tags=["reports"])
 
-# ========================================
 #          DTOs
-# ========================================
 
 class SubmitReportRequest(BaseModel):
     child_id: int
     website_url: str
 
-# ========================================
 #          Endpoints
-# ========================================
 
 @router.get("/parent/reports")
 def get_reports(parent: dict = Depends(get_current_parent), db: Session = Depends(get_db)):

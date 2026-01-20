@@ -15,9 +15,7 @@ from app.queries import (
 
 router = APIRouter(tags=["children"])
 
-# ========================================
 #          DTOs
-# ========================================
 
 class CreateChildRequest(BaseModel):
     name: str
@@ -30,9 +28,7 @@ class CreateChildRequest(BaseModel):
             raise ValueError('Name cannot be empty')
         return v.strip()
 
-# ========================================
 #          Parent Endpoints
-# ========================================
 
 @router.get("/parent/children")
 def list_children(parent: dict = Depends(get_current_parent), db: Session = Depends(get_db)):
@@ -47,9 +43,7 @@ def add_child(request: CreateChildRequest, parent: dict = Depends(get_current_pa
     child_id = create_child(db, parent["id"], request.name, request.device_name)
     return {"message": "Child added", "child_id": child_id}
 
-# ========================================
 #          Child Device Endpoints
-# ========================================
 
 @router.get("/child/{child_id}/blocklist")
 def get_child_blocklist(child_id: int, db: Session = Depends(get_db)):
